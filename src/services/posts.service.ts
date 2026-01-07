@@ -1,5 +1,5 @@
 import { skip } from "node:test";
-import { Post, PostStatus } from "../../generated/prisma/client";
+import { CommentStatus, Post, PostStatus } from "../../generated/prisma/client";
 import { PostWhereInput } from "../../generated/prisma/models";
 import { prisma } from "../lib/prisma";
 
@@ -93,6 +93,11 @@ const getAllPost = async (
         },
         orderBy: {
             [sortBy]: sortOrder
+        },
+        include: {
+            _count: {
+                select: { comments: true }
+            }
         }
     });
     const totalData = await prisma.post.count({
@@ -114,6 +119,14 @@ const getAllPost = async (
 
 const getPostById = async (id: string) => {
     return await prisma.$transaction(async (tx) => {
+        // Verify post exists first
+        await tx.post.findUniqueOrThrow({
+            where: {
+                id
+            }
+        });
+
+        // Increment views
         await tx.post.update({
             where: {
                 id
@@ -126,15 +139,138 @@ const getPostById = async (id: string) => {
         });
     
     const postData = await tx.post.findUnique({
-        where: { id }
+        where: { id },
+        include: {
+            comments: {
+                where: {
+                    parentId: null,
+                    status: CommentStatus.APPROVED
+                },
+                orderBy: {createdAt: "desc"},
+                include: {
+                    replies: {
+                        where: {
+                            status: CommentStatus.APPROVED
+                        },
+                        orderBy: { createdAt: "asc"},
+                        include: {
+                            replies: {
+                                where: {
+                                    status: CommentStatus.APPROVED
+                                },
+                                orderBy: { createdAt: "asc"}
+                            }
+                        }
+                    }
+                },
+            },
+            _count: {
+                select: { comments: true}
+            }
+        }
     });
 
     return postData;
     })
 }
 
+const getMyPosts = async(authorId: string) => {
+
+    return await prisma.$transaction(async(tsx) => {
+     await tsx.user.findUniqueOrThrow({
+        where: {
+            id: authorId,
+            status: 'ACTIVE'
+        }
+    });
+    
+    const result = await tsx.post.findMany({
+        where: {
+            authorId
+        },
+        orderBy: { createdAt: "desc"},
+        include: {
+            _count: {
+                select: {
+                    comments: true
+                }
+            }
+        }
+    });
+
+    const totalPost = await tsx.post.aggregate({
+        _count: {
+            id: true
+        },
+        where: {
+            authorId
+        }
+    });
+
+    return result;
+    // return {
+    //     data: result,
+    //     totalPost
+    // }
+    })
+}
+const updatePost = async(id: string, data: Partial<Post>, authorId: string, isAdmin: boolean) => {
+
+    return await prisma.$transaction(async(tsx) => {
+        const postData = await tsx.post.findUniqueOrThrow({
+            where: {
+                id
+            },
+            select: {
+                id: true,
+                authorId: true
+            }
+        });
+        if(!isAdmin && postData.authorId !== authorId){
+            throw new Error("Your are not admin/creator of this post");
+        }
+
+        if(!isAdmin){
+            delete data.isFeatured
+        }
+
+        return await tsx.post.update({
+            where: {
+                id
+            },
+            data
+        });
+    })
+}
+
+const deletePost = async(postId: string, authorId: string, isAdmin: boolean) => {
+    return await prisma.$transaction(async(tsx) => {
+        const postData = await tsx.post.findUniqueOrThrow({
+            where: {
+                id: postId
+            },
+            select: {
+                id: true,
+                authorId: true
+            }
+        });
+
+        if(!isAdmin && (postData.authorId !== authorId)){
+            throw new Error("Your are not admin/creator of this post");
+        }
+
+        return await tsx.post.delete({
+            where: {
+                id: postId
+            }
+        })
+    })
+}
 export const postService = {
     createPost,
     getPostById,
-    getAllPost
+    getAllPost,
+    getMyPosts,
+    updatePost,
+    deletePost
 }
