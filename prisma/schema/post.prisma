@@ -1,0 +1,29 @@
+model Post {
+    id         String     @id @default(uuid())
+    authorId   String     @map("author_id")
+    slug       String     @unique @db.VarChar(255)
+    title      String     @db.VarChar(255)
+    content    String     @db.Text
+    thumbnail  String?    @db.VarChar(255)
+    isFeatured Boolean    @default(false) @map("is_featured")
+    status     PostStatus @default(PUBLISHED)
+    tags       String[]   @default([])
+    views      Int        @default(0)
+    createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz
+    updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+    // RELATIONS:
+    // author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    comments Comment[]
+
+    @@index([authorId])
+    @@index([status])
+    @@index([slug])
+    @@map("posts")
+}
+
+enum PostStatus {
+    DRAFT
+    PUBLISHED
+    ARCHIVED
+}

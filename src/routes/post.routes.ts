@@ -11,6 +11,12 @@ router.get(
     PostController.getMyPosts
 );
 
+router.get(
+    '/stats',
+    auth(UserRole.ADMIN),
+    PostController.getStats
+)
+
 // Get a post by id
 router.get('/:id', PostController.getPostById);
 
@@ -32,6 +38,7 @@ router.delete(
     '/:id',
     auth(UserRole.ADMIN, UserRole.USER),
     PostController.deletePost
-)
+);
+
 
 export default router;

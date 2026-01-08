@@ -2,6 +2,8 @@ import { skip } from "node:test";
 import { CommentStatus, Post, PostStatus } from "../../generated/prisma/client";
 import { PostWhereInput } from "../../generated/prisma/models";
 import { prisma } from "../lib/prisma";
+import { promise } from "better-auth/*";
+import { UserRole } from "../middlewares/auth.middleware";
 
 const createPost = async (data: Omit<Post, "id" | "createdAt" | "updatedAt" | 'authorId'>, userId: string) => {
     const result = await prisma.post.create({
@@ -266,11 +268,43 @@ const deletePost = async(postId: string, authorId: string, isAdmin: boolean) => 
         })
     })
 }
+const getStats = async () => {
+    return await prisma.$transaction(async(tsx) => {
+        const [totalPosts, publishedPosts, draftPosts, archivePosts, totalComments, totalUsers, adminCounts, userCounts, totalViews] = 
+        await Promise.all([
+            await tsx.post.count(),
+            await tsx.post.count({ where: { status: PostStatus.PUBLISHED}}),
+            await tsx.post.count({ where: { status: PostStatus.DRAFT}}),
+            await tsx.post.count({ where: { status: PostStatus.ARCHIVED}}),
+            await tsx.comment.count(),
+            await tsx.comment.count({ where: {status: CommentStatus.APPROVED}}),
+            await tsx.user.count(),
+            await tsx.user.count({where: {role: "ADMIN"}}),
+            await tsx.user.count({where: {role: "USER"}}),
+            await tsx.post.aggregate({
+                _sum: {views: true}
+            })
+        ])
+
+        return {
+            totalPosts,
+            publishedPosts,
+            draftPosts,
+            archivePosts,
+            totalComments,
+            totalUsers,
+            adminCounts,
+            userCounts,
+            totalViews
+        }
+    })
+}
 export const postService = {
     createPost,
     getPostById,
     getAllPost,
     getMyPosts,
     updatePost,
-    deletePost
+    deletePost,
+    getStats
 }

@@ -23,7 +23,6 @@ const createPost = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const getPostById = asyncHandler(async (req: Request, res: Response) => {
-    try {
         const { id } = req.params;
         if(!id){
             throw new Error("The post id is invalid.....");
@@ -39,13 +38,6 @@ const getPostById = asyncHandler(async (req: Request, res: Response) => {
             success: true,
             data: result
         })
-    } catch (error) {
-        const errorMessage = (error instanceof Error) ? error.message : "Post not found";
-        res.status(404).json({
-            success: false,
-            error: errorMessage
-        })
-    }
 });
 
 const getAllPost = asyncHandler(async (req: Request, res: Response) => {
@@ -134,6 +126,16 @@ const deletePost = asyncHandler( async(req: Request, res: Response) => {
             error: errorMessage
         })
     }
+});
+
+const getStats = asyncHandler (async(req: Request, res: Response) => {
+    
+        const result = await postService.getStats();
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    
 })
 export const PostController = {
     createPost,
@@ -141,5 +143,6 @@ export const PostController = {
     getAllPost,
     getMyPosts,
     updatePost,
-    deletePost
+    deletePost,
+    getStats
 }
