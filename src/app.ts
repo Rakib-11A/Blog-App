@@ -4,6 +4,7 @@ import routes from './routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { toNodeHandler } from "better-auth/node";
 import { auth } from './lib/auth';
+import { notFount } from './middlewares/notFound.middleware';
 
 const app: Application = express();
 
@@ -27,8 +28,10 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // API Routes
-app.use('/api/v1/', routes)
+app.use('/api/v1/', routes);
 
+// Handle Unknow Route
+app.use(notFount);
 // Error Handler (must be last)
 app.use(errorHandler);
 

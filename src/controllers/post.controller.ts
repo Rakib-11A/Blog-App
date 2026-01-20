@@ -6,7 +6,6 @@ import paginationHelper from "../helpers/paginationSortingHelpers";
 import { userInfo } from "node:os";
 
 const createPost = asyncHandler(async (req: Request, res: Response) => {
-    console.log(req.user)
     const user = req.user;
     if (!user) {
         return res.status(400).json({
@@ -90,7 +89,6 @@ const getMyPosts = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const updatePost = asyncHandler (async(req: Request, res: Response) => {
-    try{
         const isAdmin = req.user?.role === 'ADMIN';
         if(!req.user) {
             throw new Error("You are not authorized.....");
@@ -101,13 +99,6 @@ const updatePost = asyncHandler (async(req: Request, res: Response) => {
             success: true,
             data: result
         })
-    }catch(error){
-        const errorMessage = (error instanceof Error) ? error.message : "Update post failed";
-        res.status(400).json({
-            success: false,
-            error: errorMessage
-        })
-    }
 })
 
 const deletePost = asyncHandler( async(req: Request, res: Response) => {

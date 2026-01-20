@@ -1,8 +1,6 @@
-import { skip } from "node:test";
 import { CommentStatus, Post, PostStatus } from "../../generated/prisma/client";
 import { PostWhereInput } from "../../generated/prisma/models";
 import { prisma } from "../lib/prisma";
-import { promise } from "better-auth/*";
 import { UserRole } from "../middlewares/auth.middleware";
 
 const createPost = async (data: Omit<Post, "id" | "createdAt" | "updatedAt" | 'authorId'>, userId: string) => {
